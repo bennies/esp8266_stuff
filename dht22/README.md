@@ -2,7 +2,7 @@
 A simple example on how to wire and read metrics from the dht22 and push them to ThingSpeak.
 
 ## Wiring
-![wemos_dht22](wemos_dht22.png =278x559)
+![wemos_dht22](wemos_dht22.png)
 
 Notice the line from D0 to RST. This is to allow it to go to deep sleep and wake up again.
 I'm taking vcc from D3, you don't have to do this you can directly hook it up to the vcc line of the board.
