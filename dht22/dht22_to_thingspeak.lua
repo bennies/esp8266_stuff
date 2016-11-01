@@ -65,4 +65,3 @@ end
 
 postThingSpeak()
 
---tmr.alarm(1, 10000, 1, function() postThingSpeak() end)
