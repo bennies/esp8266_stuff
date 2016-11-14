@@ -1,16 +1,6 @@
-wifi.setmode(wifi.STATION);
-wifi.sta.config("ssid" ,"pwd");
-wifi.sta.sethostname("dht22")
-apikey = "somekey"
 dofile ("config.lua")
 
-GPIO0 = 3
 GPIO2 = 4
-
--- GPIO0 used as a power source for dht22.
--- this is so deep sleep keeps power usage low.
-gpio.mode(GPIO0, gpio.OUTPUT)
-gpio.write(GPIO0, gpio.HIGH)
 
 if adc.force_init_mode(adc.INIT_VDD33)
 then
@@ -33,22 +23,9 @@ function postThingSpeak()
         local volt = adc.readvdd33(0);      
         print ("Voltage:" .. volt);
 
-        print( "Reading temperature..." )
-        status, temp, humi, temp_dec, humi_dec = dht.read(GPIO2)
-        if status == dht.OK then
-            print("Temperature:"..temp..".".. temp_dec ..";".."Humidity:"..humi.. "." .. humi_dec)
-        elseif status == dht.ERROR_CHECKSUM then
-            print( "DHT Checksum error." )
-        elseif status == dht.ERROR_TIMEOUT then
-            print( "DHT Timeout." )
-        end
-        -- removing power from the dht22, no need for it at this point.
-        gpio.write(GPIO0, gpio.LOW)
-
         connout:send("GET /update?api_key=" .. apikey
         .. "&field1=" .. (volt/1000) .. "." .. (volt%1000)
-        .. "&field2=" .. temp .. "." .. temp_dec
-        .. "&field3=" .. humi .. "." .. humi_dec
+        .. "&field2=" .. counter
         .. " HTTP/1.1\r\n"
         .. "Host: api.thingspeak.com\r\n"
         .. "Connection: close\r\n"
@@ -59,12 +36,28 @@ function postThingSpeak()
  
     connout:on("disconnection", function(connout, payloadout)
         connout:close();
-        -- normally you would do a collectgarbage() but considering we do dsleep it will reset anyway.
-        node.dsleep(600000000) -- 10min
+        collectgarbage()
     end)
  
     connout:connect(80,'api.thingspeak.com')
 end
 
-postThingSpeak()
+function onChange ()
+    gpio.mode(GPIO2, gpio.LOW) -- disable interrupting for a few msec.
+    counter = counter+1
+    print('Counter '..counter)
+    -- a typical pulse will be 50ms so now wait more than that=80ms before allowing the next pulse.
+    tmr.register(0, 80, tmr.ALARM_SINGLE, function() 
+        gpio.mode(GPIO2, gpio.INT)
+        gpio.trig(GPIO2, 'up', onChange)
+        end)
+    tmr.start(0)
+end
+
+counter=0;
+gpio.mode(GPIO2, gpio.INT)
+gpio.trig(GPIO2, 'up', onChange)
+
+tmr.register(1, 60*1000, tmr.ALARM_AUTO, postThingSpeak)
+tmr.start(1)
 
