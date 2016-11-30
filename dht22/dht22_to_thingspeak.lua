@@ -45,9 +45,14 @@ function postThingSpeak()
         -- removing power from the dht22, no need for it at this point.
         gpio.write(GPIO0, gpio.LOW)
 
+        -- prevent odd 0.-2 values.
+        if (temp == 0 and temp_dec<0) then
+           temp = "-"..temp
+        end
+
         connout:send("GET /update?api_key=" .. apikey
         .. "&field1=" .. (volt/1000) .. "." .. (volt%1000)
-        .. "&field2=" .. temp .. "." .. temp_dec
+        .. "&field2=" .. temp .. "." .. math.abs(temp_dec)
         .. "&field3=" .. humi .. "." .. humi_dec
         .. " HTTP/1.1\r\n"
         .. "Host: api.thingspeak.com\r\n"
