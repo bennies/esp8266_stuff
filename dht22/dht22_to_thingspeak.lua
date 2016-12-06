@@ -64,12 +64,19 @@ function postThingSpeak()
  
     connout:on("disconnection", function(connout, payloadout)
         connout:close();
+        tmr.stop(0)
         -- normally you would do a collectgarbage() but considering we do dsleep it will reset anyway.
-        node.dsleep(600000000) -- 10min
+        node.dsleep(10*60*1000*1000) -- 10min
     end)
  
     connout:connect(80,'api.thingspeak.com')
 end
+
+-- wait 8min, if all is well this will never trigger.
+tmr.register(0, 8*60*1000, tmr.ALARM_SINGLE, function()
+    node.dsleep(2*60*1000*1000) -- sleep for 2 more minutes
+end)
+tmr.start(0)
 
 postThingSpeak()
 
